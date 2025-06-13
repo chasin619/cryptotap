@@ -138,7 +138,7 @@ export default function App() {
         <div className="bg-white p-6 rounded shadow w-full max-w-md text-center">
           <h2 className="text-xl font-bold mb-4">Tap to Pay</h2>
           <p className="mb-4">
-            Hold the customer's card or phone near your device.
+          Hold the customer&apos;s card or phone near your device.
           </p>
           <button
             onClick={() => setScreen(4)}
