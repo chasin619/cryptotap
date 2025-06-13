@@ -1,48 +1,56 @@
-// Recreate CryptoTap app structure with working Supabase integration
-
 "use client";
 
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 export default function App() {
   const [screen, setScreen] = useState(1);
   const [agreed, setAgreed] = useState(false);
-  const [amount, setAmount] = useState('');
-  const [service, setService] = useState('Pedicab Ride');
+  const [amount, setAmount] = useState("");
+  const [service, setService] = useState("Pedicab Ride");
   const [transactions, setTransactions] = useState([]);
 
-  const handleAmountClick = (value) => {
-    setAmount((prev) => {
-      const newValue = prev + value;
-      return /^\d+(\.\d{0,2})?$/.test(newValue) ? newValue : prev;
-    });
+  const handleAmountClick = (val) => {
+    const newAmount = amount + val;
+    if (/^\d*\.?\d{0,2}$/.test(newAmount)) {
+      setAmount(newAmount);
+    }
   };
 
-  const handleClear = () => setAmount('');
+  const handleClear = () => setAmount("");
 
   useEffect(() => {
     if (screen === 6) {
-      const fetchTransactions = async () => {
+      (async () => {
         const { data, error } = await supabase
-          .from('transactions')
-          .select('*')
-          .order('created_at', { ascending: false });
+          .from("transactions")
+          .select("*")
+          .order("created_at", { ascending: false });
 
         if (error) {
-          console.error('Supabase error:', error);
+          console.error("Error loading transactions:", error.message);
         } else {
           setTransactions(data);
         }
-      };
-      fetchTransactions();
+      })();
     }
   }, [screen]);
 
-  useEffect(() => {
-    console.log("Supabase client:", supabase); // This should NOT be undefined
-  }, []);
-  
+  const insertTransaction = async () => {
+    const { error } = await supabase.from("transactions").insert({
+      amount: parseFloat(amount),
+      service,
+      status: "paid",
+      crypto_tx: "simulated_hash_123",
+    });
+
+    if (error) {
+      console.error("Insert error:", error.message);
+    } else {
+      setScreen(5);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start p-6">
       {/* Navbar */}
@@ -56,12 +64,12 @@ export default function App() {
         </button>
       </div>
 
-      {/* Screen 1: Enter Price */}
+      {/* Screen 1 */}
       {screen === 1 && (
         <div className="bg-white p-6 rounded shadow w-full max-w-md">
           <h2 className="text-xl font-bold mb-4">Enter Service & Price</h2>
           <div className="text-center text-4xl font-bold mb-4">
-            ${amount || '0.00'}
+            ${amount || "0.00"}
           </div>
           <div className="grid grid-cols-3 gap-2 mb-4">
             {["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0"].map((val) => (
@@ -98,12 +106,13 @@ export default function App() {
         </div>
       )}
 
-      {/* Screen 2: Disclaimer */}
+      {/* Screen 2 */}
       {screen === 2 && (
         <div className="bg-white p-6 rounded shadow w-full max-w-md">
           <h2 className="text-lg font-bold mb-2">Service Agreement</h2>
           <p className="text-sm mb-4">
-            By proceeding, you agree to a final and non-refundable payment for this service. This charge will be converted into a cryptocurrency payment.
+            By proceeding, you agree to a final and non-refundable payment for this
+            service. This charge will be converted into a cryptocurrency payment.
           </p>
           <label className="flex items-center mb-4">
             <input
@@ -124,11 +133,13 @@ export default function App() {
         </div>
       )}
 
-      {/* Screen 3: Tap to Pay */}
+      {/* Screen 3 */}
       {screen === 3 && (
         <div className="bg-white p-6 rounded shadow w-full max-w-md text-center">
           <h2 className="text-xl font-bold mb-4">Tap to Pay</h2>
-          <p className="mb-4">Hold the customer's card or phone near your device.</p>
+          <p className="mb-4">
+            Hold the customer's card or phone near your device.
+          </p>
           <button
             onClick={() => setScreen(4)}
             className="bg-green-600 text-white py-2 px-4 rounded"
@@ -138,21 +149,13 @@ export default function App() {
         </div>
       )}
 
-      {/* Screen 4: Crypto Processing */}
+      {/* Screen 4 */}
       {screen === 4 && (
         <div className="bg-white p-6 rounded shadow w-full max-w-md text-center">
           <h2 className="text-lg font-bold mb-2">Processing Payment</h2>
           <p className="mb-4">Converting to crypto…</p>
           <button
-            onClick={async () => {
-              await supabase.from('transactions').insert({
-                amount: parseFloat(amount),
-                service,
-                status: 'paid',
-                crypto_tx: 'simulated_hash_123',
-              });
-              setScreen(5);
-            }}
+            onClick={insertTransaction}
             className="bg-blue-600 text-white py-2 px-4 rounded"
           >
             Confirm Crypto Received
@@ -160,14 +163,14 @@ export default function App() {
         </div>
       )}
 
-      {/* Screen 5: Receipt */}
+      {/* Screen 5 */}
       {screen === 5 && (
         <div className="bg-white p-6 rounded shadow w-full max-w-md text-left">
           <h2 className="text-lg font-bold mb-2">Receipt</h2>
           <p><strong>Service:</strong> {service}</p>
           <p><strong>Amount:</strong> ${amount}</p>
           <p><strong>Status:</strong> USDC Received</p>
-          <p><strong>TX Hash:</strong> [simulated_hash_123]</p>
+          <p><strong>TX Hash:</strong> simulated_hash_123</p>
           <button
             onClick={() => setScreen(6)}
             className="mt-4 bg-blue-600 text-white py-2 px-4 rounded"
@@ -177,7 +180,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Screen 6: Transaction History */}
+      {/* Screen 6 */}
       {screen === 6 && (
         <div className="bg-white p-6 rounded shadow w-full max-w-md">
           <h2 className="text-lg font-bold mb-4">Transaction History</h2>
