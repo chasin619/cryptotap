@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { Transak } from "@transak/transak-sdk";
+
+import ExpressCheckoutButton from "./components/ExpressCheckoutButton";
 
 export default function App() {
   const [screen, setScreen] = useState(1);
@@ -51,9 +54,29 @@ export default function App() {
     }
   };
 
+  function openTransak(fiatAmount) {
+    // Debug: check if env variable is loading
+    console.log("Using Transak key:", process.env.NEXT_PUBLIC_TRANSAK_KEY);
+  
+    const transak = new Transak({
+      apiKey: process.env.NEXT_PUBLIC_TRANSAK_KEY,
+      environment: 'STAGING',
+      defaultCryptoCurrency: 'USDC',
+      walletAddress: '0x9C790a6144b691484cDe07919F7459c6d7D33e09',
+      fiatAmount: parseFloat(fiatAmount),
+      fiatCurrency: 'USD',
+      network: 'polygon',
+      disableWalletAddressForm: true,
+      disableCryptoCurrencyChange: true,
+      isFeeCalculationHidden: true,
+      themeColor: '000000',
+    });
+  
+    transak.init();
+  }
+  
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start p-6">
-      {/* Navbar */}
       <div className="w-full max-w-md mb-4 flex justify-between items-center">
         <h1 className="text-xl font-bold">CryptoTap</h1>
         <button
@@ -64,123 +87,169 @@ export default function App() {
         </button>
       </div>
 
-      {/* Screen 1 */}
       {screen === 1 && (
-        <div className="bg-white p-6 rounded shadow w-full max-w-md">
-          <h2 className="text-xl font-bold mb-4">Enter Service & Price</h2>
-          <div className="text-center text-4xl font-bold mb-4">
-            ${amount || "0.00"}
-          </div>
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0"].map((val) => (
-              <button
-                key={val}
-                onClick={() => handleAmountClick(val)}
-                className="bg-gray-200 text-lg py-3 rounded"
-              >
-                {val}
-              </button>
-            ))}
-            <button
-              onClick={handleClear}
-              className="col-span-3 bg-red-200 text-red-700 py-2 rounded"
-            >
-              Clear
-            </button>
-          </div>
-          <select
-            className="border p-2 w-full mb-4 rounded"
-            value={service}
-            onChange={(e) => setService(e.target.value)}
-          >
-            <option>Pedicab Ride</option>
-            <option>Delivery</option>
-            <option>Other</option>
-          </select>
-          <button
-            onClick={() => setScreen(2)}
-            className="bg-blue-600 text-white py-2 px-4 rounded w-full"
-          >
-            Continue
-          </button>
-        </div>
-      )}
+  <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
+    <h2 className="text-xl font-bold mb-4 text-center">Enter Service & Amount</h2>
 
-      {/* Screen 2 */}
-      {screen === 2 && (
-        <div className="bg-white p-6 rounded shadow w-full max-w-md">
-          <h2 className="text-lg font-bold mb-2">Service Agreement</h2>
-          <p className="text-sm mb-4">
-            By proceeding, you agree to a final and non-refundable payment for this
-            service. This charge will be converted into a cryptocurrency payment.
-          </p>
-          <label className="flex items-center mb-4">
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              className="mr-2"
-            />
-            I agree to the terms above
-          </label>
-          <button
-            disabled={!agreed}
-            onClick={() => setScreen(3)}
-            className="bg-blue-600 text-white py-2 px-4 rounded w-full disabled:opacity-50"
-          >
-            Tap to Pay
-          </button>
-        </div>
-      )}
+    <div className="text-center text-5xl font-bold mb-6 text-gray-800">
+      ${amount || "0.00"}
+    </div>
 
-      {/* Screen 3 */}
-      {screen === 3 && (
-        <div className="bg-white p-6 rounded shadow w-full max-w-md text-center">
-          <h2 className="text-xl font-bold mb-4">Tap to Pay</h2>
-          <p className="mb-4">
-          Hold the customer&apos;s card or phone near your device.
-          </p>
-          <button
-            onClick={() => setScreen(4)}
-            className="bg-green-600 text-white py-2 px-4 rounded"
-          >
-            Simulate Successful Payment
-          </button>
-        </div>
-      )}
+    <div className="grid grid-cols-3 gap-3 mb-6">
+      {["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0"].map((val) => (
+        <button
+          key={val}
+          onClick={() => handleAmountClick(val)}
+          className="bg-gray-200 hover:bg-gray-300 text-2xl font-semibold py-4 rounded-xl"
+        >
+          {val}
+        </button>
+      ))}
+      <button
+        onClick={handleClear}
+        className="col-span-3 bg-red-100 hover:bg-red-200 text-red-700 py-3 rounded-xl font-bold"
+      >
+        Clear
+      </button>
+    </div>
 
-      {/* Screen 4 */}
-      {screen === 4 && (
-        <div className="bg-white p-6 rounded shadow w-full max-w-md text-center">
-          <h2 className="text-lg font-bold mb-2">Processing Payment</h2>
-          <p className="mb-4">Converting to crypto…</p>
-          <button
-            onClick={insertTransaction}
-            className="bg-blue-600 text-white py-2 px-4 rounded"
-          >
-            Confirm Crypto Received
-          </button>
-        </div>
-      )}
+    <select
+      className="border p-3 rounded-xl w-full mb-4 text-gray-700"
+      value={service}
+      onChange={(e) => setService(e.target.value)}
+    >
+      <option>Pedicab Ride</option>
+      <option>Delivery</option>
+      <option>Other</option>
+    </select>
 
-      {/* Screen 5 */}
-      {screen === 5 && (
-        <div className="bg-white p-6 rounded shadow w-full max-w-md text-left">
-          <h2 className="text-lg font-bold mb-2">Receipt</h2>
-          <p><strong>Service:</strong> {service}</p>
-          <p><strong>Amount:</strong> ${amount}</p>
-          <p><strong>Status:</strong> USDC Received</p>
-          <p><strong>TX Hash:</strong> simulated_hash_123</p>
-          <button
-            onClick={() => setScreen(6)}
-            className="mt-4 bg-blue-600 text-white py-2 px-4 rounded"
-          >
-            View Transaction History
-          </button>
-        </div>
-      )}
+    <button
+      onClick={() => setScreen(2)}
+      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl"
+    >
+      Continue
+    </button>
+  </div>
+)}
 
-      {/* Screen 6 */}
+
+{screen === 2 && (
+  <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
+    <h2 className="text-xl font-bold mb-4 text-center">Service Agreement</h2>
+    <p className="text-sm text-gray-700 mb-6">
+      You are making a final and non-refundable payment for the selected service.
+      The payment will be converted to cryptocurrency for processing and is not subject
+      to disputes or chargebacks once completed.
+    </p>
+
+    <label className="flex items-start space-x-3 mb-6 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={agreed}
+        onChange={(e) => setAgreed(e.target.checked)}
+        className="w-5 h-5 mt-1 accent-green-600"
+      />
+      <span className="text-gray-800 text-sm leading-snug">
+        I understand and agree to the terms of this transaction.
+      </span>
+    </label>
+
+    <button
+      onClick={() => agreed && setScreen(3)}
+      disabled={!agreed}
+      className={`w-full text-white font-bold py-3 px-4 rounded-xl ${
+        agreed ? "bg-green-600 hover:bg-green-700" : "bg-gray-300 cursor-not-allowed"
+      }`}
+    >
+      Proceed to Payment
+    </button>
+  </div>
+)}
+
+
+{screen === 3 && (
+  <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md text-center">
+    <h2 className="text-xl font-bold mb-6">Choose Payment Method</h2>
+
+    <button
+      onClick={() => {
+        insertTransaction(); // record to Supabase
+        openTransak(parseFloat(amount)); // launch Transak
+      }}
+      className="w-full bg-black text-white font-semibold py-3 rounded-xl mb-4 hover:bg-gray-800 transition"
+    >
+      💳 Pay with Apple Pay / Card
+    </button>
+
+    <div className="text-sm text-gray-500 mb-4">— or —</div>
+
+    <button
+      onClick={() => setScreen("manualCard")}
+      className="w-full bg-white border border-gray-400 text-gray-800 font-semibold py-3 rounded-xl mb-4 hover:bg-gray-100 transition"
+    >
+      Enter Card Manually
+    </button>
+  </div>
+)}
+
+
+{screen === "manualCard" && (
+  <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
+    <h2 className="text-xl font-bold mb-4">Manual Card Entry</h2>
+
+    <div className="space-y-3">
+      <input
+        type="text"
+        placeholder="Card Number"
+        className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="MM/YY"
+          className="w-1/2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          type="text"
+          placeholder="CVC"
+          className="w-1/2 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+    </div>
+
+    <button
+      onClick={() => setScreen(4)}
+      className="mt-6 w-full bg-green-600 text-white font-semibold py-3 rounded-xl hover:bg-green-700 transition"
+    >
+      Submit Payment
+    </button>
+  </div>
+)}
+
+
+
+
+{screen === 5 && (
+  <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md text-left text-gray-800">
+    <h2 className="text-xl font-bold mb-4">🧾 Receipt</h2>
+    
+    <div className="space-y-2 text-sm">
+      <p><span className="font-semibold">Service:</span> {service}</p>
+      <p><span className="font-semibold">Amount:</span> ${amount}</p>
+      <p><span className="font-semibold">Status:</span> ✅ USDC Received</p>
+      <p><span className="font-semibold">TX Hash:</span> <code className="text-blue-600">simulated_hash_123</code></p>
+    </div>
+
+    <button
+      onClick={() => setScreen(6)}
+      className="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 transition"
+    >
+      View Transaction History
+    </button>
+  </div>
+)}
+
+
       {screen === 6 && (
         <div className="bg-white p-6 rounded shadow w-full max-w-md">
           <h2 className="text-lg font-bold mb-4">Transaction History</h2>
